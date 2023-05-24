@@ -1,0 +1,20 @@
+{
+  "IdCliente": 0,
+  "Documento": "53968406429",
+  "Nome": "Neymar dos Santos Jr.",
+  "Sexo": "MASCULINO",
+  "Email": "NeymarJr@gmail.com",
+  "Telefone": "55119942906538",
+  "Fax": "sim",
+  "UF": "SP"
+} ,
+{
+  "IdCliente": 0,
+  "Documento": "56788932106",
+  "Nome": "Luis Suarez",
+  "Sexo": "MASCULINO",
+  "Email": "LuisitoGremio@gmail.com",
+  "Telefone": "04830281058",
+  "Fax": "sim",
+  "UF": "RS"
+} ,
