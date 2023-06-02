@@ -2,6 +2,8 @@
 using Newtonsoft.Json;
 using System.Reflection.Metadata;
 using System.Security.Cryptography.X509Certificates;
+using MySql.Data.MySqlClient;
+using System.Data;
 
 namespace ProjetoC_.Models.Repositories
 {
@@ -12,36 +14,123 @@ namespace ProjetoC_.Models.Repositories
         // convertendo as coisas do site em formato de json no arquivo .txt abaixo
         public void Salvar(Clientes clientes)
         {
-            // Vai listar tudo do banco de dados
-            var ClientesLista = Listar();
-            // vai achar ele
-            var item = ClientesLista.Where(a => a.Documento == clientes.Documento).FirstOrDefault();
 
-            // Se ele existe eu deleto
-            if (item != null)
-            {
-                Deletar(clientes.Documento);
-            }
-
-            // se ele não existir, já vai salvar de qualquer jeito mesmo
-            string retorno_json = JsonConvert.SerializeObject(clientes, Formatting.Indented) + " ," + Environment.NewLine;
-
-            File.AppendAllText(@"C:\\Users\\mastr\\OneDrive\\Área de Trabalho\\c#\\CadastroClientes\\Banco\\banco_dados.txt", retorno_json);
-        }
-
-
-        //criando a lista de todos os clientes que vai ser usada depois de ser convertida em json no arquivo .txt
-        public List<Clientes> Listar()
-        {
+            string server = "localhost";
+            string database = "cadastro_cliente";
+            string username = "root";
+            string password = "";
+            string constring = "SERVER=" + server + ";" + "DATABASE=" + database + ";" +
+                "UID=" + username + ";" + "PASSWORD=" + password + ";";
 
             // mano, pega essa lista desse arquivo aqui
             var tipo_da_variavel = File.ReadAllText("C:\\Users\\mastr\\OneDrive\\Área de Trabalho\\c#\\CadastroClientes\\Banco\\banco_dados.txt");
 
             // e coloca ela dentro dessa lista (lista Clientes criada antes)
-            List<Clientes>? clientes = JsonConvert.DeserializeObject<List<Clientes>>("[" + tipo_da_variavel + "]");
-            List<Clientes> clientes_lista = clientes;
+            List<Clientes>? data = JsonConvert.DeserializeObject<List<Clientes>>("[" + tipo_da_variavel + "]");
 
-            return clientes_lista.OrderByDescending(t => t.Nome).ToList();
+            // Primeiro eu tenho que conectar com o MySQL workbench
+            using (MySqlConnection conn = new MySqlConnection(constring))
+            {
+                conn.Open();
+
+                // Depois eu cologo, pra cada item nos dados (data), sendo que os dados é o deserialized object.
+                // I'm running into an issue here. The website is saving the already listed data from Listar(), not
+                // the new saved cadastro when I try to save another person
+                foreach (var item in data)
+                {
+
+                    string query = "INSERT INTO clientes (Documento, nome, sexo, email, telefone, fax, UF) " +
+                                   "VALUES (@Documento, @Nome, @Sexo, @Email, @Telefone, @Fax, @UF)";
+
+                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    {
+                        // Set the parameter values
+                        cmd.Parameters.AddWithValue("@Documento", item.Documento);
+                        cmd.Parameters.AddWithValue("@Nome", item.Nome);
+                        cmd.Parameters.AddWithValue("@Sexo", item.Sexo);
+                        cmd.Parameters.AddWithValue("@Email", item.Email);
+                        cmd.Parameters.AddWithValue("@Telefone", item.Telefone);
+                        cmd.Parameters.AddWithValue("@Fax", item.Fax);
+                        cmd.Parameters.AddWithValue("@UF", item.UF);
+
+                        // Execute the query
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            Console.WriteLine("Data inserted successfully!");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Failed to insert data.");
+                        }
+                    }
+                }
+            }
+
+            // Vai listar tudo do banco de dados
+            // var ClientesLista = Listar();
+            // vai achar ele
+            // var item = ClientesLista.Where(a => a.Documento == clientes.Documento).FirstOrDefault();
+
+            // Se ele existe eu deleto
+            //if (item != null)
+            //{
+            //Deletar(clientes.Documento);
+            //}
+
+            // se ele não existir, já vai salvar de qualquer jeito mesmo
+            // string retorno_json = JsonConvert.SerializeObject(clientes, Formatting.Indented) + " ," + Environment.NewLine;
+
+            // File.AppendAllText(@"C:\\Users\\mastr\\OneDrive\\Área de Trabalho\\c#\\CadastroClientes\\Banco\\banco_dados.txt", retorno_json);
+        }
+
+        // Here, I'll make a function that only retrieves the data so that I can list it in the Website using MySQL
+        public List<Clientes> Listar() {
+
+            string server = "localhost";
+            string database = "cadastro_cliente";
+            string username = "root";
+            string password = "";
+            string constring = "SERVER=" + server + ";" + "DATABASE=" + database + ";" +
+                "UID=" + username + ";" + "PASSWORD=" + password + ";";
+
+            using (MySqlConnection conn = new MySqlConnection(constring))
+            {
+                conn.Open();
+
+                string query = "SELECT * FROM clientes";
+
+                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                {
+                    using (MySqlDataAdapter adapter = new MySqlDataAdapter(cmd))
+                    {
+                        DataTable dataTable = new DataTable();
+                        adapter.Fill(dataTable);
+
+                        List<Clientes> clientesList = new List<Clientes>();
+
+                        foreach (DataRow row in dataTable.Rows)
+                        {
+                            Clientes cliente = new Clientes
+                            {
+                                IdCliente = Convert.ToInt32(row["id_cliente"]),
+                                Documento = row["Documento"].ToString(),
+                                Nome = row["nome"].ToString(),
+                                Sexo = row["sexo"].ToString(),
+                                Email = row["email"].ToString(),
+                                Telefone = row["telefone"].ToString(),
+                                Fax = row["fax"].ToString(),
+                                UF = row["UF"].ToString()
+                            };
+
+                            clientesList.Add(cliente);
+                        }
+
+                        return clientesList.OrderByDescending(t => t.Nome).ToList();
+                    }
+                }
+            }
         }
 
         
