@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 using Org.BouncyCastle.Utilities;
 using ProjetoC_.UserLogins;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Security.Cryptography;
 
 namespace ProjetoC_.Controllers
@@ -11,6 +15,12 @@ namespace ProjetoC_.Controllers
     public class AuthController : ControllerBase
     {
         public static User user = new User();
+        private readonly IConfiguration _configuration;
+
+        public AuthController(IConfiguration configuration)
+        {
+
+        }
 
         [HttpPost("register")]
 
@@ -41,7 +51,37 @@ namespace ProjetoC_.Controllers
                 return BadRequest("Incorrect password");
             }
 
+            string token = CreateToken(user);
             return Ok("Token");
+        }
+
+        private string CreateToken(User user)
+        { // how tf do I create a token???
+            // Figured it out, basically I have to make claims, which are basically properties that describe/store
+            // the user's information in the token (criptographed)
+            // I will add just the email to the list of claim to be token-criptographed
+            List<Claim> claims = new List<Claim>()
+            {
+                new Claim(ClaimTypes.Name, user.email)
+            }; // now need a simmetric security key
+
+            var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                _configuration.GetSection("Appsettings:Token").Value));
+                // now the fun part. Key creation! And putting it in the token obv
+                // This is how to create the JWT I guess, hope my laptop doesn't explode
+
+            var cred = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                // i'll also need to put an expiration date so it can't be used forever or meddled with
+                expires: DateTime.Now.AddHours(6),
+                signingCredentials: cred
+                );
+
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return jwt;
         }
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
