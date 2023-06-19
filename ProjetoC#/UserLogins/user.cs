@@ -9,6 +9,7 @@ namespace ProjetoC_.UserLogins
         public int id_user { get; set; }
 
         public string email { get; set; } = String.Empty!;
+
         public byte[] PasswordHash { get; set; }
 
         public byte[] PasswordSalt { get; set; }

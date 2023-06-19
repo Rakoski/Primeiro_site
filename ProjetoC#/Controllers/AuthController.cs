@@ -19,7 +19,7 @@ namespace ProjetoC_.Controllers
 
         public AuthController(IConfiguration configuration)
         {
-
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
