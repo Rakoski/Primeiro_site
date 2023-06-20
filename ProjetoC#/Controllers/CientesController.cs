@@ -17,6 +17,7 @@ namespace ProjetoC_.Controllers
     {
         [HttpPost("Salvar")]
         // "httpPost" significa que tudo que acontecer no site será mandado para essa classe aqui embaixo
+
         public object Salvar([FromBody] Clientes cadastro)
             // "object" é o tipo comum do C, aka ele aceita tudo, como um input normal, pode ser int, string, etc
             // Então, quando salvar essa classe quer falar pro usuário que o input foi salvo com sucesso
