@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using MySql.Data.MySqlClient;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 using Org.BouncyCastle.Utilities;
 using ProjetoC_.UserLogins;
+using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using ProjetoC_;
 
 
 namespace ProjetoC_.Controllers
@@ -28,11 +29,34 @@ namespace ProjetoC_.Controllers
 
         public async Task<ActionResult<User>> Register(UserDto request)
         {
+
             CreatePasswordHash(request.password, out byte[] passwordHash, out byte[] passwordSalt);
 
-            user.email = request.email;
-            user.PasswordHash = passwordHash;
-            user.PasswordSalt = passwordSalt;
+            string server = "localhost";
+            string database = "cadastro_cliente";
+            string username = "root";
+            string password = "";
+            string constring = "SERVER=" + server + ";" + "DATABASE=" + database + ";" +
+                            "UID=" + username + ";" + "PASSWORD=" + password + ";";
+
+            string passwordHashString = Convert.ToBase64String(passwordHash);
+            string passwordSaltString = Convert.ToBase64String(passwordSalt);
+
+            using (MySqlConnection connection = new MySqlConnection(constring))
+            {
+                connection.Open();
+
+                string query = "INSERT INTO Users (email, password_Hash, password_salt) VALUES (@email, @password_hash, @password_salt)";
+
+                using (MySqlCommand command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@email", request.email);
+                    command.Parameters.AddWithValue("@password_hash", passwordHashString);
+                    command.Parameters.AddWithValue("@password_salt", passwordSaltString);
+
+                    command.ExecuteNonQuery();
+                }
+            }
 
             return Ok(user);
         }
@@ -43,18 +67,48 @@ namespace ProjetoC_.Controllers
         // can get them to connect me to my webpage
         public async Task<ActionResult<string>> Login(UserDto request)
         {
-            if (user.email != request.email)
-            {
-                return BadRequest("User not found");
-            }
+            string server = "localhost";
+            string database = "cadastro_cliente";
+            string username = "root";
+            string password = "";
+            string constring = "SERVER=" + server + ";" + "DATABASE=" + database + ";" +
+                            "UID=" + username + ";" + "PASSWORD=" + password + ";";
 
-            if(!VerifyPasswordHash(request.password, user.PasswordHash, user.PasswordSalt))
-            {
-                return BadRequest("Incorrect password");
-            }
+            var conexao = new MySqlConnection(constring);
 
-            string token = CreateToken(user);
-            return Ok("Token");
+            using (MySqlConnection connection = new MySqlConnection(constring))
+            {
+                connection.Open();
+
+                var query = "SELECT email, password_hash, password_salt FROM Users WHERE email = @email;";
+                using (MySqlCommand command = new MySqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@email", request.email);
+
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            // Email found in the database
+                            string email = reader.GetString("email");
+                            byte[] storedPasswordHash = Convert.FromBase64String(reader.GetString("password_hash"));
+                            byte[] storedPasswordSalt = Convert.FromBase64String(reader.GetString("password_salt"));
+
+                            if (!VerifyPasswordHash(request.password, storedPasswordHash, storedPasswordSalt))
+                            {
+                                return BadRequest("Incorrect password");
+                            }
+
+                            string token = CreateToken(user);
+                            return Ok("token");
+                        }
+                        else
+                        {
+                            return BadRequest("User not found");
+                        }
+                    }
+                }
+            }
         }
 
         private string CreateToken(User user)
