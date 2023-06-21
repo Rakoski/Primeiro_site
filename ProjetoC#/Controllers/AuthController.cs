@@ -27,7 +27,7 @@ namespace ProjetoC_.Controllers
 
         [HttpPost("register")]
 
-        public async Task<ActionResult<User>> Register(UserDto request)
+        public async Task<ActionResult<User>> Register([FromBody]UserDto request)
         {
 
             CreatePasswordHash(request.password, out byte[] passwordHash, out byte[] passwordSalt);
@@ -60,12 +60,9 @@ namespace ProjetoC_.Controllers
 
             return Ok(user);
         }
-        [HttpPost("login")]
 
-        // so basically this means that both the user email and the user password have to be correct
-        // for the "Token" message to be generated on swagger. I'll try more experimenting with Tokens to see if I
-        // can get them to connect me to my webpage
-        public async Task<ActionResult<string>> Login(UserDto request)
+        [HttpPost("login")]
+        public async Task<ActionResult<string>> Login([FromBody]UserDto request)
         {
             string server = "localhost";
             string database = "cadastro_cliente";
@@ -100,7 +97,7 @@ namespace ProjetoC_.Controllers
                             }
 
                             string token = CreateToken(user);
-                            return Ok("token");
+                            return Ok(new { token });
                         }
                         else
                         {
