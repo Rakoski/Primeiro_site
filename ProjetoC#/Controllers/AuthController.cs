@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using MySql.Data.MySqlClient;
-using Org.BouncyCastle.Tls.Crypto.Impl.BC;
-using Org.BouncyCastle.Utilities;
+using System;
+using System.Text.RegularExpressions;
 using ProjetoC_.UserLogins;
-using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -41,6 +39,22 @@ namespace ProjetoC_.Controllers
 
             string passwordHashString = Convert.ToBase64String(passwordHash);
             string passwordSaltString = Convert.ToBase64String(passwordSalt);
+
+            string email = request.email; 
+
+            bool isValidEmail = IsValidEmail(email);
+
+            if (!isValidEmail)
+            {
+                return BadRequest("Invalid Email");
+            }
+
+            static bool IsValidEmail(string email)
+            {
+                string pattern = @"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$";
+
+                return Regex.IsMatch(email, pattern);
+            }
 
             using (MySqlConnection connection = new MySqlConnection(constring))
             {
