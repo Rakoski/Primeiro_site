@@ -4,6 +4,7 @@ using MimeKit.Text;
 using MimeKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using ProjetoC_.Models;
 
 namespace ProjetoC_.Controllers
 {
@@ -11,20 +12,18 @@ namespace ProjetoC_.Controllers
     [ApiController]
     public class EmailController : ControllerBase
     {
-        [HttpPost]
-        public IActionResult SendMail(string body)
-        {
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse("king.wehner27@ethereal.email"));
-            email.To.Add(MailboxAddress.Parse("king.wehner27@ethereal.email"));
-            email.Subject = "Test email subject";
-            email.Body = new TextPart(TextFormat.Html) { Text = body };
+        private readonly IEmailService _emailService;
 
-            using var smpt = new SmtpClient();
-            smpt.Connect("smtp.ethereal.email", 587, SecureSocketOptions.StartTls);
-            smpt.Authenticate("king.wehner27@ethereal.email", "q2QBTKkSRz3R7w92XQ");
-            smpt.Send(email);
-            smpt.Disconnect(true);
+        public EmailController(IEmailService emailService)
+        {
+            _emailService = emailService;
+        }
+
+
+        [HttpPost]
+        public IActionResult SendMail(EmailDto request)
+        {
+            _emailService.SendEmail(request);
 
             return Ok();
         }
